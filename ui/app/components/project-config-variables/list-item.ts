@@ -3,6 +3,8 @@ import { tracked } from '@glimmer/tracking';
 import { action } from '@ember/object';
 import { ConfigVar, Project } from 'waypoint-pb';
 import { inject as service } from '@ember/service';
+import { BufferedChangeset } from 'ember-changeset/types';
+import { Changeset } from 'ember-changeset';
 import ApiService from 'waypoint/services/api';
 import FlashMessagesService from 'waypoint/services/flash-messages';
 
@@ -21,6 +23,7 @@ export default class ProjectConfigVariablesListItemComponent extends Component<V
 
   initialVariable!: ConfigVar.AsObject;
   @tracked variable: ConfigVar.AsObject;
+  @tracked changeset?: BufferedChangeset;
   @tracked isCreating: boolean;
   @tracked isEditing: boolean;
 
@@ -50,7 +53,8 @@ export default class ProjectConfigVariablesListItemComponent extends Component<V
   @action
   editVariable(): void {
     this.isEditing = true;
-    this.storeInitialVariable();
+    // this.storeInitialVariable();
+    this.changeset = Changeset(this.variable);
   }
 
   @action
