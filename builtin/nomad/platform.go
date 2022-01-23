@@ -155,7 +155,7 @@ func (p *Platform) resourceJobCreate(
 		job.AddTaskGroup(tg)
 		task := &api.Task{
 			Name:   result.Name,
-			Driver: "docker",
+			Driver: "podman",
 		}
 
 		if p.config.Resources != nil {
@@ -530,12 +530,10 @@ deploy {
 	return doc, nil
 }
 
-var (
-	mixedHealthWarn = strings.TrimSpace(`
+var mixedHealthWarn = strings.TrimSpace(`
 Waypoint detected that the current deployment is not ready, however your application
 might be available or still starting up.
 `)
-)
 
 var (
 	_ component.Platform     = (*Platform)(nil)

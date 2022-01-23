@@ -433,7 +433,6 @@ func (i *NomadInstaller) Upgrade(
 		// fail the upgrade with no allocations running
 		s.Update("Getting allocations for nomad server job, this may take a while...")
 		allocs, qmeta, err := client.Jobs().Allocations(serverName, false, qopts)
-
 		if err != nil {
 			return nil, err
 		}
@@ -911,6 +910,7 @@ func waypointNomadJob(c nomadConfig, rawRunFlags []string) *api.Job {
 	readOnly := false
 	volume := "waypoint-server"
 	destination := "/data"
+
 	volumeMounts := []*api.VolumeMount{
 		{
 			Volume:      &volume,
@@ -921,7 +921,7 @@ func waypointNomadJob(c nomadConfig, rawRunFlags []string) *api.Job {
 	cpu := defaultResourcesCPU
 	mem := defaultResourcesMemory
 
-	preTask := api.NewTask("pre_task", "docker")
+	preTask := api.NewTask("pre_task", "podman")
 	// Observed WP user and group IDs in the published container, update if those ever change
 	waypointUserID := 100
 	waypointGroupID := 1000
@@ -945,7 +945,7 @@ func waypointNomadJob(c nomadConfig, rawRunFlags []string) *api.Job {
 
 	ras := []string{"server", "run", "-accept-tos", "-vv", "-db=/alloc/data/data.db", fmt.Sprintf("-listen-grpc=0.0.0.0:%s", defaultGrpcPort), fmt.Sprintf("-listen-http=0.0.0.0:%s", defaultHttpPort)}
 	ras = append(ras, rawRunFlags...)
-	task := api.NewTask("server", "docker")
+	task := api.NewTask("server", "podman")
 	task.Config = map[string]interface{}{
 		"image":          c.serverImage,
 		"ports":          []string{"server", "ui"},
@@ -955,6 +955,7 @@ func waypointNomadJob(c nomadConfig, rawRunFlags []string) *api.Job {
 	task.Env = map[string]string{
 		"PORT": defaultGrpcPort,
 	}
+	task.Env["DOCKER_HOST"] = "/run/podman/podman.sock"
 
 	task.VolumeMounts = volumeMounts
 
@@ -989,7 +990,7 @@ func waypointRunnerNomadJob(c nomadConfig, opts *InstallRunnerOpts) *api.Job {
 	}
 	job.AddTaskGroup(tg)
 
-	task := api.NewTask("runner", "docker")
+	task := api.NewTask("runner", "podman")
 	task.Config = map[string]interface{}{
 		"image": c.serverImage,
 		"args": []string{
@@ -1032,6 +1033,7 @@ func waypointRunnerNomadJob(c nomadConfig, opts *InstallRunnerOpts) *api.Job {
 		c.nomadHost = defaultNomadHost
 	}
 	task.Env["NOMAD_ADDR"] = c.nomadHost
+	task.Env["DOCKER_HOST"] = "/run/podman/podman.sock"
 
 	tg.AddTask(task)
 

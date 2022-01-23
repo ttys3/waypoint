@@ -206,7 +206,7 @@ func (p *TaskLauncher) StartTask(
 	job.AddTaskGroup(tg)
 	task := &api.Task{
 		Name:   taskName,
-		Driver: "docker",
+		Driver: "podman",
 	}
 
 	task.Resources = &api.Resources{
