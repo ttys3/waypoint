@@ -69,7 +69,6 @@ VOLUME ["/data"]
 # having the proper permissions to read the server db due to a different userid
 RUN addgroup waypoint && \
     adduser -S -u 100 -G waypoint waypoint && \
-    test -d data || mkdir /data/ && \
     chown -R waypoint:waypoint /data
 
 # configure newuidmap/newgidmap to work with our waypoint user
