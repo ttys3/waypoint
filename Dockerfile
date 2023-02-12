@@ -6,7 +6,9 @@
 
 FROM docker.mirror.hashicorp.services/golang:1.19-alpine3.17 AS builder
 
-RUN apk add --no-cache git gcc libc-dev make
+ENV GOPROXY=https://goproxy.cn,direct
+
+RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.ustc.edu.cn/g' /etc/apk/repositories && apk add --no-cache git gcc libc-dev make
 
 RUN mkdir -p /tmp/wp-prime
 COPY go.sum /tmp/wp-prime
@@ -56,7 +58,7 @@ ENTRYPOINT ["/kaniko/waypoint"]
 FROM docker.mirror.hashicorp.services/alpine:3.17.0
 
 # git is for gitrefpretty() and other calls for Waypoint
-RUN apk add --no-cache git
+RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.ustc.edu.cn/g' /etc/apk/repositories && apk add --no-cache git
 
 COPY --from=builder /tmp/wp-src/waypoint /usr/bin/waypoint
 COPY --from=builder /tmp/wp-src/waypoint-entrypoint /usr/bin/waypoint-entrypoint
