@@ -15,6 +15,20 @@ parameter {
 }
 
 parameter {
+  key         = "volumes"
+  description = "Volumes are accessible during both detect build phases\nshould have the form: /path/in/host:/path/in/container. It is strongly recommended you do not override any of the paths with volume mounts at the following locations:\n- /cnb\n- /layers\n- anything below /cnb/**"
+  type        = "list of string"
+  required    = false
+}
+
+parameter {
+  key           = "docker_host"
+  description   = "Address of docker daemon exposed to build container. e.g. tcp://example.com:1234, unix:///run/user/1000/podman/podman.sock. If not set (or set to empty string) the standard socket location will be used. \n Special value 'inherit' may be used in which case DOCKER_HOST environment variable will be used. \nThis option may set DOCKER_HOST environment variable for the build container if needed."
+  type          = "string"
+  required      = false
+}
+
+parameter {
   key         = "disable_entrypoint"
   description = "if set, the entrypoint binary won't be injected into the image\nThe entrypoint binary is what provides extended functionality such as logs and exec. If it is not injected at build time the expectation is that the image already contains it"
   type        = "bool"

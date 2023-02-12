@@ -11,9 +11,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/buildpacks/pack"
-	"github.com/buildpacks/pack/logging"
-	"github.com/buildpacks/pack/project"
+	packclient "github.com/buildpacks/pack/pkg/client"
+	"github.com/buildpacks/pack/pkg/logging"
+	projecttypes "github.com/buildpacks/pack/pkg/project/types"
 	"github.com/docker/distribution/reference"
 	"github.com/docker/docker/client"
 	"github.com/hashicorp/go-hclog"
@@ -63,6 +63,11 @@ type BuilderConfig struct {
 	// The exact buildpacks to use.
 	Buildpacks []string `hcl:"buildpacks,optional"`
 
+	// Address of docker daemon exposed to build container
+	// e.g. tcp://example.com:1234, unix:///run/user/1000/podman/podman.sock
+	DockerHost string `hcl:"docker_host,optional"`
+
+	Volumes []string `hcl:"volumes,optional"`
 	// Environment variables that are meant to configure the application in a static
 	// way. This might be control an image that has mulitple modes of operation,
 	// selected via environment variable. Most configuration should use the waypoint
@@ -373,9 +378,9 @@ func (b *Builder) Build(
 	build := sg.Add("Building image")
 	defer build.Abort()
 
-	client, err := pack.NewClient(
-		pack.WithLogger(logging.New(build.TermOutput())),
-		pack.WithDockerClient(dockerClient),
+	client, err := packclient.NewClient(
+		packclient.WithLogger(logging.NewSimpleLogger(build.TermOutput())),
+		packclient.WithDockerClient(dockerClient),
 	)
 	if err != nil {
 		return nil, err
@@ -383,16 +388,20 @@ func (b *Builder) Build(
 
 	step.Done()
 
-	bo := pack.BuildOptions{
+	bo := packclient.BuildOptions{
 		Image:      src.App,
 		Builder:    builder,
 		AppPath:    src.Path,
 		Env:        b.config.StaticEnvVars,
 		Buildpacks: b.config.Buildpacks,
-		ProjectDescriptor: project.Descriptor{
-			Build: project.Build{
+		DockerHost: b.config.DockerHost,
+		ProjectDescriptor: projecttypes.Descriptor{
+			Build: projecttypes.Build{
 				Exclude: b.config.Ignore,
 			},
+		},
+		ContainerConfig: packclient.ContainerConfig{
+			Volumes: b.config.Volumes,
 		},
 		DefaultProcessType: b.config.ProcessType,
 	}
@@ -433,16 +442,17 @@ func (b *Builder) Build(
 	if proc != nil {
 		cmd := proc.Command
 
+		theCmd := ""
 		if len(proc.Args) > 0 {
-			if len(cmd) > 0 {
-				cmd = fmt.Sprintf("%s %s", cmd, strings.Join(proc.Args, " "))
+			if len(cmd.Entries) > 0 {
+				theCmd = fmt.Sprintf("%s %s", strings.Join(cmd.Entries, " "), strings.Join(proc.Args, " "))
 			} else {
-				cmd = strings.Join(proc.Args, " ")
+				theCmd = strings.Join(proc.Args, " ")
 			}
 		}
 
-		if cmd != "" {
-			labels["common/command"] = cmd
+		if theCmd != "" {
+			labels["common/command"] = theCmd
 			if proc.Type != "" {
 				labels["common/command-type"] = proc.Type
 			}
